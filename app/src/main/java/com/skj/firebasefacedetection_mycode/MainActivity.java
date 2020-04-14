@@ -358,8 +358,9 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     public void onFrame(Bitmap image, FirebaseVisionFace face, FrameMetadata frameMetadata, GraphicOverlay graphicOverlay) {
         originalImage = image;
-        float onFrame_X = face.getBoundingBox().exactCenterX();
-        float onFrame_Y = face.getBoundingBox().exactCenterY();
+        FaceGraphic faceGraphic = new FaceGraphic(graphicOverlay);
+        float onFrame_X = faceGraphic.translateX(face.getBoundingBox().exactCenterX());
+        float onFrame_Y = faceGraphic.translateY(face.getBoundingBox().exactCenterY());
 
         X_f = Float.toString(onFrame_X);
         Y_f = Float.toString(onFrame_Y);

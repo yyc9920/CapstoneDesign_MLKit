@@ -1,13 +1,16 @@
-package com.skj.firebasefacedetection_mycode.Process_part;
+package com.skj.firebasefacedetection_mycode;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
+import android.os.Environment;
 import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
@@ -18,10 +21,17 @@ import androidx.annotation.RequiresPermission;
 
 import com.google.android.gms.common.images.Size;
 import com.skj.firebasefacedetection_mycode.Interfaces.VisionImageProcessor;
+import com.skj.firebasefacedetection_mycode.Process_part.FrameMetadata;
+import com.skj.firebasefacedetection_mycode.Process_part.GraphicOverlay;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +65,15 @@ public class CameraSource {
 
     protected Activity activity;
 
-    private Camera camera;
+    public Camera camera;
+
+    public final boolean enableShutterSound(boolean enabled) {
+        return true;
+    }
+
+    public Camera.ShutterCallback shutterCallback;
+
+    public Camera.PictureCallback pictureCallback;
 
     protected int facing = CAMERA_FACING_BACK;
 
@@ -79,6 +97,7 @@ public class CameraSource {
     // references maintained to them.
     private SurfaceTexture dummySurfaceTexture;
     private final GraphicOverlay graphicOverlay;
+    String currentPhotoPath;
 
     // True if a SurfaceTexture is being used for the preview, false if a SurfaceHolder is being
     // used for the preview.  We want to be compatible back to Gingerbread, but SurfaceTexture
@@ -117,6 +136,50 @@ public class CameraSource {
         graphicOverlay = overlay;
         graphicOverlay.clear();
         processingRunnable = new FrameProcessingRunnable();
+
+        pictureCallback = new Camera.PictureCallback() {
+            @Override
+            public void onPictureTaken(byte[] data, Camera camera) {
+                Bitmap bmp = BitmapFactory.decodeByteArray(data, 0, data.length);
+                Bitmap cbmp = Bitmap.createBitmap(bmp, 0,0, bmp.getWidth(), bmp.getHeight(),
+                        null, true);
+
+                String pathFileName = currentDateFormat();
+                storePhotoToStorage(cbmp, pathFileName);
+
+                camera.startPreview();
+            }
+        };
+
+        shutterCallback = new Camera.ShutterCallback() {
+            @Override
+            public void onShutter() {
+                enableShutterSound(true);
+            }
+        };
+    }
+
+    @SuppressLint("WrongThread")
+    public void storePhotoToStorage(Bitmap cbmp, String pathFileName) {
+        File outputFile = new File(Environment.getExternalStorageDirectory(), "/DCIM/"+"photo"+pathFileName+".jpg");
+        currentPhotoPath = "/DCIM/"+"photo"+pathFileName+".jpg";
+
+        try {
+            FileOutputStream fileOutputStream  = new FileOutputStream(outputFile);
+            cbmp.compress(Bitmap.CompressFormat.JPEG, 100, fileOutputStream);
+            fileOutputStream.flush();
+            fileOutputStream.close();
+        }catch (FileNotFoundException e){
+            e.printStackTrace();
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+    }
+
+    public String currentDateFormat() {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd_HH_mm_ss");
+        String currentTime = dateFormat.format(new Date());
+        return currentTime;
     }
 
     // ==============================================================================================

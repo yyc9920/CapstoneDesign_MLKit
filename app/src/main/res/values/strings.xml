@@ -1,5 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">FirebaseFaceDetection_Mycode</string>
+    <string name="app_name">ML Kit </string>
     <string name="picture">Picture</string>
     <string name="help_text">
       <b>HDR Viewfinder Demo:</b>\n\n
@@ -41,7 +42,6 @@
     <string name="desc_camera_source_activity">Real-time Face Detection: MLKIT</string>
     <string name="desc_still_image_activity">Vision detectors demo with a still image</string>
 
-    <!-- MainActivity(ChooserActivity) -->
-    <string name="on">On</string>
-    <string name="off">Off</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

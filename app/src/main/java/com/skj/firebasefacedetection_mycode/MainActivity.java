@@ -361,13 +361,21 @@ public class MainActivity extends AppCompatActivity implements
         FaceGraphic faceGraphic = new FaceGraphic(graphicOverlay);
         float onFrame_X = faceGraphic.translateX(face.getBoundingBox().exactCenterX());
         float onFrame_Y = faceGraphic.translateY(face.getBoundingBox().exactCenterY());
-
+            
+       // Just for Debugging.
+       // Log.d(this.getClass().getName(), "X_좌표: " + X_f + "//" + "Y_좌표: " + Y_f);
         X_f = Float.toString(onFrame_X);
         Y_f = Float.toString(onFrame_Y);
-
-        Log.d(this.getClass().getName(), "X_좌표: " + X_f + "//" + "Y_좌표: " + Y_f);
+        
+        /** 20.04.20 Continuous Bluetooth send Code -> Success! */
+        if(bt.isServiceAvailable()) {
+            bt.send(X_f + "///" + Y_f,true);
+        }else{
+            bt.setupService();
+            bt.startService(BluetoothState.DEVICE_OTHER);
+            bt.send(X_f + "///" + Y_f,true);
+        }
     }
     /////////////////////////////////////////////////////////////////////////////////////////////
-
 }
 

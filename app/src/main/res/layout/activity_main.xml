@@ -59,7 +59,7 @@
             android:layout_marginRight="15dp"
             android:textOff=""
             android:textOn=""
-            android:background="@drawable/voice_toggle_style" />
+            android:background="@drawable/voicerecongnition" />
 
         <Button
             android:id="@+id/albumButton"
@@ -67,7 +67,7 @@
             android:layout_height="40dp"
             android:layout_gravity="left|center"
             android:layout_marginLeft="15dp"
-            android:background="@drawable/ic_outer_circle"
+            android:background="@drawable/gallery"
             />
 
     </FrameLayout>
@@ -110,16 +110,13 @@
             android:layout_marginRight="20dp"
             android:text="Send"></Button>
 
-        <ProgressBar
-            android:id="@+id/progressBar1"
-            style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="match_parent"
+        <TextView
+            android:id="@+id/returnedtext"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@+id/toggleButton1"
-            android:layout_alignParentLeft="true"
-            android:layout_marginTop="28dp"
-            android:paddingLeft="10dp"
-            android:paddingRight="10dp" />
+            android:layout_gravity="center"
+            android:layout_marginTop="20dp"/>
+
     </FrameLayout>
 
 </RelativeLayout>

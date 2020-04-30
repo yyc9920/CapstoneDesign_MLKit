@@ -13,14 +13,22 @@ import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.os.Bundle;
-import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
+
+import com.ibm.cloud.sdk.core.security.Authenticator;
+import com.ibm.cloud.sdk.core.security.IamAuthenticator;
+import com.ibm.watson.developer_cloud.android.library.audio.MicrophoneHelper;
+import com.ibm.watson.developer_cloud.android.library.audio.MicrophoneInputStream;
+import com.ibm.watson.developer_cloud.android.library.audio.utils.ContentType;
+import com.ibm.watson.speech_to_text.v1.SpeechToText;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -28,6 +36,10 @@ import android.widget.ToggleButton;
 
 
 import com.google.firebase.ml.vision.face.FirebaseVisionFace;
+import com.ibm.watson.speech_to_text.v1.model.RecognizeOptions;
+import com.ibm.watson.speech_to_text.v1.model.SpeechRecognitionResults;
+import com.ibm.watson.speech_to_text.v1.websocket.BaseRecognizeCallback;
+import com.ibm.watson.speech_to_text.v1.websocket.RecognizeCallback;
 import com.skj.firebasefacedetection_mycode.FaceDetection.FaceDetectionProcessor;
 import com.skj.firebasefacedetection_mycode.FaceDetection.FaceGraphic;
 import com.skj.firebasefacedetection_mycode.Interfaces.FrameReturn;
@@ -36,6 +48,7 @@ import com.skj.firebasefacedetection_mycode.Process_part.FrameMetadata;
 import com.skj.firebasefacedetection_mycode.Process_part.GraphicOverlay;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,8 +59,7 @@ import app.akexorcist.bluetotohspp.library.DeviceList;
 public class MainActivity extends AppCompatActivity implements
         ActivityCompat.OnRequestPermissionsResultCallback,
         CompoundButton.OnCheckedChangeListener,
-        FrameReturn,
-        RecognitionListener {
+        FrameReturn {
     private static final String FACE_DETECTION = "Face Detection";
     private static final String TAG = "MainActivity";
     private static final int PERMISSION_REQUESTS = 1;
@@ -61,15 +73,22 @@ public class MainActivity extends AppCompatActivity implements
     private GraphicOverlay graphicOverlay;
     private Button btn_blue;
     private Button albumButton, captureBtn;
-    private boolean safeToTakePicture = false;
-    private static final int REQUEST_RECORD_PERMISSION = 100;
-    private TextView returnedText;
+    private boolean safeToTakePicture = true;
     private ToggleButton handsfree;
-    private ProgressBar progressBar;
-    private SpeechRecognizer speech = null;
+    private SpeechToText speechService;
+    private TextView returnedText;
+    private MicrophoneInputStream capture;
+    private MicrophoneHelper microphoneHelper;
     private Intent recognizerIntent;
     private String LOG_TAG = "VoiceRecognitionActivity";
-    private static final String cheese = "치즈";
+    private static final String cheese[] = {"치즈 ",
+                                            "사진 ",
+                                            "스마일 ",
+                                            "김치 ",
+                                            "캡처 ",
+                                            "캡쳐 "};
+    private int handsFreeCaptureCnt = 1;
+    private boolean listening = false;
 
     String X_f = null;
     String Y_f = null;
@@ -80,19 +99,16 @@ public class MainActivity extends AppCompatActivity implements
 
         setContentView(R.layout.activity_main);
 
+        microphoneHelper = new MicrophoneHelper(this);
         safeToTakePicture = true;
+        speechService = initSpeechToTextService();
 
         albumButton = (Button) findViewById(R.id.albumButton);
         captureBtn = findViewById(R.id.camera_button);
         handsfree = findViewById(R.id.handsFree);
-        returnedText = (TextView) findViewById(R.id.textView1);
+        returnedText = findViewById(R.id.returnedtext);
 
-        progressBar = (ProgressBar) findViewById(R.id.progressBar1);
-
-        progressBar.setVisibility(View.INVISIBLE);
-        speech = SpeechRecognizer.createSpeechRecognizer(this);
         Log.i(LOG_TAG, "isRecognitionAvailable: " + SpeechRecognizer.isRecognitionAvailable(this));
-        speech.setRecognitionListener(this);
         recognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE,
                 "en");
@@ -101,22 +117,39 @@ public class MainActivity extends AppCompatActivity implements
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
 
 
-        handsfree.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+        //TODO : Pop up the alert screen when handsfree button is checked.
+        handsfree.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onCheckedChanged(CompoundButton buttonView,
-                                         boolean isChecked) {
-                if (isChecked) {
-                    progressBar.setVisibility(View.VISIBLE);
-                    progressBar.setIndeterminate(true);
-                    ActivityCompat.requestPermissions
-                            (MainActivity.this,
-                                    new String[]{Manifest.permission.RECORD_AUDIO},
-                                    REQUEST_RECORD_PERMISSION);
+            public void onClick(View v) {
+                if(!listening) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            handsfree.setBackground(getDrawable(R.drawable.voicerecongnition_clicked));
+                        }
+                    });
+                    capture = microphoneHelper.getInputStream(true);
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                speechService.recognizeUsingWebSocket(getRecognizeOptions(capture), new MicrophoneRecognizeDelegate());
+                            } catch (Exception e) {
+                                showError(e);
+                            }
+                        }
+                    }).start();
+
+                    listening = true;
                 } else {
-                    progressBar.setIndeterminate(false);
-                    progressBar.setVisibility(View.INVISIBLE);
-                    speech.stopListening();
-                    safeToTakePicture = true;
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            handsfree.setBackground(getDrawable(R.drawable.voicerecongnition));
+                        }
+                    });
+                    microphoneHelper.closeInputStream();
+                    listening = false;
                 }
             }
         });
@@ -225,12 +258,126 @@ public class MainActivity extends AppCompatActivity implements
 
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String[] permissions,
+                                           int[] grantResults) {
+        switch (requestCode) {
+            case MicrophoneHelper.REQUEST_PERMISSION: {
+                if (grantResults.length > 0 && grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(this, "Permission to record audio denied", Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
+    }
+
     private void getAlbum(){
         Log.i("getAlbum", "Call");
         Intent intent = new Intent(Intent.ACTION_PICK);
         intent.setType("image/*");
         intent.setType(android.provider.MediaStore.Images.Media.CONTENT_TYPE);
         startActivityForResult(intent, REQUEST_TAKE_ALBUM);
+    }
+
+    private SpeechToText initSpeechToTextService() {
+        Authenticator authenticator = new IamAuthenticator(getString(R.string.speech_text_apikey));
+        SpeechToText service = new SpeechToText(authenticator);
+        service.setServiceUrl(getString(R.string.speech_text_url));
+        return service;
+    }
+
+    private RecognizeOptions getRecognizeOptions(InputStream captureStream) {
+        return new RecognizeOptions.Builder()
+                .audio(captureStream)
+                .contentType(ContentType.OPUS.toString())
+                .model("ko-KR_BroadbandModel")
+                .interimResults(true)
+                .inactivityTimeout(2000)
+                .build();
+    }
+
+    private class MicrophoneRecognizeDelegate extends BaseRecognizeCallback implements RecognizeCallback {
+        @Override
+        public void onTranscription(SpeechRecognitionResults speechResults) {
+            System.out.println(speechResults);
+            if (speechResults.getResults() != null && !speechResults.getResults().isEmpty()) {
+                String text = speechResults.getResults().get(0).getAlternatives().get(0).getTranscript();
+                showMicText(text);
+                if((handsFreeCaptureCnt % 2) == 0){
+                    handsFreeCapture(text);
+                }
+                handsFreeCaptureCnt++;
+                if(handsFreeCaptureCnt == 100) handsFreeCaptureCnt=1;
+            }
+        }
+
+        @Override
+        public void onError(Exception e) {
+            try {
+                // This is critical to avoid hangs
+                // (see https://github.com/watson-developer-cloud/android-sdk/issues/59)
+                capture.close();
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
+            showError(e);
+            enableMicButton();
+        }
+
+        @Override
+        public void onDisconnected() {
+            enableMicButton();
+        }
+    }
+
+    private void showMicText(final String text) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                returnedText.setText(text);
+                safeToTakePicture = true;
+            }
+        });
+    }
+
+    private void handsFreeCapture(final String text) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                final View handsFreeCapture = findViewById(R.id.camera_button);
+                for(int i=0; i<6; i++){
+                    if (text.equals(cheese[i])){
+                        Toast.makeText(MainActivity.this, "Take Photo",
+                                Toast.LENGTH_SHORT).show();
+                        if (safeToTakePicture) {
+                            handsFreeCapture.performClick();
+                            safeToTakePicture = false;
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    private void showError(final Exception e) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
+                e.printStackTrace();
+                // Update the icon background
+                handsfree.setBackground(getDrawable(R.drawable.voicerecongnition));
+            }
+        });
+    }
+
+    private void enableMicButton() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                handsfree.setEnabled(true);
+            }
+        });
     }
 
     ///////////////////////// toggle button -> for Camera facing //////////////////////////
@@ -357,15 +504,6 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
-    @Override
-    protected void onStop() {
-        super.onStop();
-        if (speech != null) {
-            speech.destroy();
-            Log.i(LOG_TAG, "destroy");
-        }
-    }
-
 
     public void setup() {
         btn_blue = (Button)findViewById(R.id.btn_blue);
@@ -419,26 +557,6 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
-    @Override
-    public void onRequestPermissionsResult(
-            int requestCode, String[] permissions, int[] grantResults) {
-        Log.i(TAG, "Permission granted!");
-        if (allPermissionsGranted()) {
-//            createCameraSource(selectedModel);
-            startCameraSource();
-        }
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        switch (requestCode) {
-            case REQUEST_RECORD_PERMISSION:
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    speech.startListening(recognizerIntent);
-                } else {
-                    Toast.makeText(MainActivity.this, "Permission Denied!", Toast
-                            .LENGTH_SHORT).show();
-                }
-        }
-    }
-
     private static boolean isPermissionGranted(Context context, String permission) {
         if (ContextCompat.checkSelfPermission(context, permission)
                 == PackageManager.PERMISSION_GRANTED) {
@@ -474,113 +592,6 @@ public class MainActivity extends AppCompatActivity implements
             bt.startService(BluetoothState.DEVICE_OTHER);
             bt.send(X_f + "///" + Y_f,true);
         }
-    }
-
-    @Override
-    public void onReadyForSpeech(Bundle params) {
-        Log.i(LOG_TAG, "onReadyForSpeech");
-    }
-
-    @Override
-    public void onBeginningOfSpeech() {
-        Log.i(LOG_TAG, "onBeginningOfSpeech");
-        progressBar.setIndeterminate(false);
-        progressBar.setMax(10);
-    }
-
-    @Override
-    public void onRmsChanged(float rmsdB) {
-        Log.i(LOG_TAG, "onRmsChanged: " + rmsdB);
-        progressBar.setProgress((int) rmsdB);
-    }
-
-    @Override
-    public void onBufferReceived(byte[] buffer) {
-        Log.i(LOG_TAG, "onBufferReceived: " + buffer);
-    }
-
-    @Override
-    public void onEndOfSpeech() {
-        Log.i(LOG_TAG, "onEndOfSpeech");
-        progressBar.setIndeterminate(true);
-        handsfree.setChecked(false);
-    }
-
-    @Override
-    public void onError(int errorCode) {
-        String errorMessage = getErrorText(errorCode);
-        Log.d(LOG_TAG, "FAILED " + errorMessage);
-        returnedText.setText(errorMessage);
-        handsfree.setChecked(false);
-    }
-
-    @Override
-    public void onResults(Bundle results) {
-        Log.i(LOG_TAG, "onResults");
-        final View handsFreeCapture = findViewById(R.id.camera_button);
-        ArrayList<String> matches = results
-                .getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-        String text = "";
-        for (String result : matches) {
-            text += result + "\n";
-            if (result.equals(cheese)) {
-                Toast.makeText(MainActivity.this, "Take Photo",
-                        Toast.LENGTH_SHORT).show();
-                if (safeToTakePicture) {
-                    handsFreeCapture.performClick();
-                    safeToTakePicture = false;
-                }
-            } else ;
-        }
-
-        returnedText.setText(text);
-    }
-
-    @Override
-    public void onPartialResults(Bundle partialResults) {
-        Log.i(LOG_TAG, "onPartialResults");
-    }
-
-    @Override
-    public void onEvent(int eventType, Bundle params) {
-        Log.i(LOG_TAG, "onEvent");
-    }
-
-    public static String getErrorText(int errorCode) {
-        String message;
-        switch (errorCode) {
-            case SpeechRecognizer.ERROR_AUDIO:
-                message = "Audio recording error";
-                break;
-            case SpeechRecognizer.ERROR_CLIENT:
-                message = "Client side error";
-                break;
-            case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS:
-                message = "Insufficient permissions";
-                break;
-            case SpeechRecognizer.ERROR_NETWORK:
-                message = "Network error";
-                break;
-            case SpeechRecognizer.ERROR_NETWORK_TIMEOUT:
-                message = "Network timeout";
-                break;
-            case SpeechRecognizer.ERROR_NO_MATCH:
-                message = "No match";
-                break;
-            case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
-                message = "RecognitionService busy";
-                break;
-            case SpeechRecognizer.ERROR_SERVER:
-                message = "error from server";
-                break;
-            case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
-                message = "No speech input";
-                break;
-            default:
-                message = "Didn't understand, please try again.";
-                break;
-        }
-        return message;
     }
 }
 

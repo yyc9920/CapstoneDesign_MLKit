@@ -19,6 +19,17 @@
         android:supportsRtl="true"
         android:theme="@style/MaterialTheme">
 
+<!--        <provider-->
+<!--            android:name="androidx.core.content.ContextCompat"-->
+<!--            android:authorities="com.ibm.watson.developer_cloud.android.provider"-->
+<!--            android:exported="false"-->
+<!--            android:grantUriPermissions="true">-->
+<!--            <meta-data-->
+<!--                android:name="android.support.FILE_PROVIDER_PATHS"-->
+<!--                android:resource="@xml/provider_paths">-->
+<!--            </meta-data>-->
+<!--        </provider>-->
+
         <activity
             android:name=".ChooserActivity"
             android:exported="true"

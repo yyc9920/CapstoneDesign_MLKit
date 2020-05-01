@@ -4,7 +4,6 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-
 import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -13,12 +12,9 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.os.Bundle;
-import android.speech.RecognizerIntent;
-import android.speech.SpeechRecognizer;
-
 import com.ibm.cloud.sdk.core.security.Authenticator;
 import com.ibm.cloud.sdk.core.security.IamAuthenticator;
-import com.ibm.watson.developer_cloud.android.library.audio.MicrophoneHelper;
+import com.ibm.watson.developer_cloud.android.library.audio.MicrophoneHelper;           //STT 기능 관련 라이브러리를 import
 import com.ibm.watson.developer_cloud.android.library.audio.MicrophoneInputStream;
 import com.ibm.watson.developer_cloud.android.library.audio.utils.ContentType;
 import com.ibm.watson.speech_to_text.v1.SpeechToText;
@@ -29,10 +25,8 @@ import android.widget.CompoundButton;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
-
-
 import com.google.firebase.ml.vision.face.FirebaseVisionFace;
-import com.ibm.watson.speech_to_text.v1.model.RecognizeOptions;
+import com.ibm.watson.speech_to_text.v1.model.RecognizeOptions;                         //STT 기능 관련 라이브러리를 import
 import com.ibm.watson.speech_to_text.v1.model.SpeechRecognitionResults;
 import com.ibm.watson.speech_to_text.v1.websocket.BaseRecognizeCallback;
 import com.ibm.watson.speech_to_text.v1.websocket.RecognizeCallback;
@@ -42,12 +36,10 @@ import com.skj.firebasefacedetection_mycode.Interfaces.FrameReturn;
 import com.skj.firebasefacedetection_mycode.Process_part.CameraSourcePreview;
 import com.skj.firebasefacedetection_mycode.Process_part.FrameMetadata;
 import com.skj.firebasefacedetection_mycode.Process_part.GraphicOverlay;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-
 import app.akexorcist.bluetotohspp.library.BluetoothSPP;
 import app.akexorcist.bluetotohspp.library.BluetoothState;
 import app.akexorcist.bluetotohspp.library.DeviceList;
@@ -75,9 +67,8 @@ public class MainActivity extends AppCompatActivity implements
     private TextView returnedText;
     private MicrophoneInputStream capture;
     private MicrophoneHelper microphoneHelper;
-    private Intent recognizerIntent;
     private String LOG_TAG = "VoiceRecognitionActivity";
-    private static final String cheese[] = {"치즈 ",
+    private static final String cheese[] = {"치즈 ",      //해당 단어를 인식하여 사진 캡쳐를 수행
                                             "사진 ",
                                             "스마일 ",
                                             "김치 ",
@@ -104,16 +95,7 @@ public class MainActivity extends AppCompatActivity implements
         handsfree = findViewById(R.id.handsFree);
         returnedText = findViewById(R.id.returnedtext);
 
-        Log.i(LOG_TAG, "isRecognitionAvailable: " + SpeechRecognizer.isRecognitionAvailable(this));
-        recognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE,
-                "en");
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
-
-
-        //TODO : Pop up the alert screen when handsfree button is checked.
+        //핸즈프리 캡쳐 기능을 사용할 때 토글시켜주는 버튼의 동작을 구현
         handsfree.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -121,7 +103,7 @@ public class MainActivity extends AppCompatActivity implements
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            handsfree.setBackground(getDrawable(R.drawable.voicerecongnition_clicked));
+                            handsfree.setBackground(getDrawable(R.drawable.voicerecongnition_clicked));     //토글버튼이 활성화됬을 때 버튼 모양 설정
                         }
                     });
                     capture = microphoneHelper.getInputStream(true);
@@ -136,16 +118,16 @@ public class MainActivity extends AppCompatActivity implements
                         }
                     }).start();
 
-                    listening = true;
+                    listening = true;       //STT 기능을 활성화시키는 코드
                 } else {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            handsfree.setBackground(getDrawable(R.drawable.voicerecongnition));
+                            handsfree.setBackground(getDrawable(R.drawable.voicerecongnition));             //토글버튼이 비활성화됬을 때 버튼 모양 설정
                         }
                     });
                     microphoneHelper.closeInputStream();
-                    listening = false;
+                    listening = false;      //STT 기능을 비활성화시키는 코드
                 }
             }
         });
@@ -276,9 +258,9 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     private SpeechToText initSpeechToTextService() {
-        Authenticator authenticator = new IamAuthenticator(getString(R.string.speech_text_apikey));
+        Authenticator authenticator = new IamAuthenticator(getString(R.string.speech_text_apikey));     //IBM Cloud STT 서비스의 API key => res/values/strings.xml 참고
         SpeechToText service = new SpeechToText(authenticator);
-        service.setServiceUrl(getString(R.string.speech_text_url));
+        service.setServiceUrl(getString(R.string.speech_text_url));            //IBM Cloud STT 서비스의 URL => res/values/strings.xml 참고
         return service;
     }
 
@@ -286,12 +268,13 @@ public class MainActivity extends AppCompatActivity implements
         return new RecognizeOptions.Builder()
                 .audio(captureStream)
                 .contentType(ContentType.OPUS.toString())
-                .model("ko-KR_BroadbandModel")
+                .model("ko-KR_BroadbandModel")      //한국어 모델 사용
                 .interimResults(true)
                 .inactivityTimeout(2000)
                 .build();
     }
 
+    //TODO : 사진 두 번 찍히는 현상 해결할 수 있는 다른 방법 강구해보기.
     private class MicrophoneRecognizeDelegate extends BaseRecognizeCallback implements RecognizeCallback {
         @Override
         public void onTranscription(SpeechRecognitionResults speechResults) {
@@ -299,11 +282,11 @@ public class MainActivity extends AppCompatActivity implements
             if (speechResults.getResults() != null && !speechResults.getResults().isEmpty()) {
                 String text = speechResults.getResults().get(0).getAlternatives().get(0).getTranscript();
                 showMicText(text);
-                if((handsFreeCaptureCnt % 2) == 0){
-                    handsFreeCapture(text);
+                if((handsFreeCaptureCnt % 2) == 1){     //음성인식을 수행하면서 여러 가지 후보를 따지는데, 경우에 따라 같은 단어로 두 개의 후보가 생성되기도 함.
+                    handsFreeCapture(text);             //해당 조건검사를 해주지 않으면 사진이 두 번 연속 찍히는 현상 발생. 정상적으로 한 번만 인식되는 경우도 있어 완벽한 조건검사는 아님.
                 }
                 handsFreeCaptureCnt++;
-                if(handsFreeCaptureCnt == 100) handsFreeCaptureCnt=1;
+                if(handsFreeCaptureCnt == 3) handsFreeCaptureCnt=1;
             }
         }
 
@@ -331,7 +314,7 @@ public class MainActivity extends AppCompatActivity implements
             @Override
             public void run() {
                 returnedText.setText(text);
-                safeToTakePicture = true;
+                safeToTakePicture = true;               //카메라 캡쳐를 소프트웨어로 구현하기 위해서는 플래그 검사를 통해 제어해줄 필요가 있음.(구글링한 정보, 없으면 오류남)
             }
         });
     }
@@ -342,10 +325,10 @@ public class MainActivity extends AppCompatActivity implements
             public void run() {
                 final View handsFreeCapture = findViewById(R.id.camera_button);
                 for(int i=0; i<6; i++){
-                    if (text.equals(cheese[i])){
+                    if (text.equals(cheese[i])){        //인식한 단어와 미리 설정한 캡쳐 수행 단어를 비교하여 같으면 캡쳐 기능 수행.
                         Toast.makeText(MainActivity.this, "Take Photo",
                                 Toast.LENGTH_SHORT).show();
-                        if (safeToTakePicture) {
+                        if (safeToTakePicture) {        //플래그 검사 및 카메라 캡쳐 기능
                             handsFreeCapture.performClick();
                             safeToTakePicture = false;
                         }

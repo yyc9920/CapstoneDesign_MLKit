@@ -7,6 +7,7 @@ import android.graphics.Paint;
 import com.google.android.gms.vision.CameraSource;
 import com.google.firebase.ml.vision.face.FirebaseVisionFace;
 import com.skj.firebasefacedetection_mycode.Process_part.GraphicOverlay;
+import com.skj.firebasefacedetection_mycode.R;
 
 
 /**
@@ -27,6 +28,7 @@ public class FaceGraphic extends GraphicOverlay.Graphic{
     private static int currentColorIndex = 0;
 
     private int facing;
+    private boolean safeToTakePicture = true;
 
     private final Paint facePositionPaint;
     private final Paint idPaint;

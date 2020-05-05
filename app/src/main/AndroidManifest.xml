@@ -5,8 +5,8 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <uses-feature android:name="android.hardware.camera" />
     <uses-feature android:name="android.hardware.camera.autofocus" />
@@ -18,18 +18,16 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/MaterialTheme">
-
-<!--        <provider-->
-<!--            android:name="androidx.core.content.ContextCompat"-->
-<!--            android:authorities="com.ibm.watson.developer_cloud.android.provider"-->
-<!--            android:exported="false"-->
-<!--            android:grantUriPermissions="true">-->
-<!--            <meta-data-->
-<!--                android:name="android.support.FILE_PROVIDER_PATHS"-->
-<!--                android:resource="@xml/provider_paths">-->
-<!--            </meta-data>-->
-<!--        </provider>-->
-
+        <!-- <provider -->
+        <!-- android:name="androidx.core.content.ContextCompat" -->
+        <!-- android:authorities="com.ibm.watson.developer_cloud.android.provider" -->
+        <!-- android:exported="false" -->
+        <!-- android:grantUriPermissions="true"> -->
+        <!-- <meta-data -->
+        <!-- android:name="android.support.FILE_PROVIDER_PATHS" -->
+        <!-- android:resource="@xml/provider_paths"> -->
+        <!-- </meta-data> -->
+        <!-- </provider> -->
         <activity
             android:name=".ChooserActivity"
             android:exported="true"

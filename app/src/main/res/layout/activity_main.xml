@@ -101,6 +101,16 @@
             android:textOff=""
             android:textOn="" />
 
+        <ToggleButton
+            android:id="@+id/smile_toggle"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_gravity="center|top"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/smile_toggle"
+            android:textOff=""
+            android:textOn="" />
+
         <Button
             android:id="@+id/btn_blue"
             android:layout_width="wrap_content"

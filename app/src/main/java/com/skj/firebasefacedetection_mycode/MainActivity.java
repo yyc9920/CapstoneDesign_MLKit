@@ -62,7 +62,9 @@ public class MainActivity extends AppCompatActivity implements
     private Button btn_blue;
     private Button albumButton, captureBtn;
     private boolean safeToTakePicture = true;
+    private boolean smileHandsFreeChecked;
     private ToggleButton handsfree;
+    private ToggleButton smileHandsFree;
     private SpeechToText speechService;
     private TextView returnedText;
     private MicrophoneInputStream capture;
@@ -94,6 +96,7 @@ public class MainActivity extends AppCompatActivity implements
         captureBtn = findViewById(R.id.camera_button);
         handsfree = findViewById(R.id.handsFree);
         returnedText = findViewById(R.id.returnedtext);
+        smileHandsFree = findViewById(R.id.smile_toggle);
 
         //핸즈프리 캡쳐 기능을 사용할 때 토글시켜주는 버튼의 동작을 구현
         handsfree.setOnClickListener(new View.OnClickListener() {
@@ -128,6 +131,17 @@ public class MainActivity extends AppCompatActivity implements
                     });
                     microphoneHelper.closeInputStream();
                     listening = false;      //STT 기능을 비활성화시키는 코드
+                }
+            }
+        });
+
+        smileHandsFree.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked == true) {
+                    smileHandsFreeChecked = true;
+                } else {
+                    smileHandsFreeChecked = false;
                 }
             }
         });
@@ -562,7 +576,17 @@ public class MainActivity extends AppCompatActivity implements
        // Log.d(this.getClass().getName(), "X_좌표: " + X_f + "//" + "Y_좌표: " + Y_f);
         X_f = Float.toString(onFrame_X);
         Y_f = Float.toString(onFrame_Y);
-        
+
+        if(Float.parseFloat(String.format("%.2f", face.getSmilingProbability())) > 0.8) {
+            final View handsFreeCapture = findViewById(R.id.camera_button);
+            if (safeToTakePicture && smileHandsFreeChecked) {        //플래그 검사 및 카메라 캡쳐 기능
+                handsFreeCapture.performClick();
+                safeToTakePicture = false;
+            }
+        } else {
+            safeToTakePicture = true;
+        }
+
         /** 20.04.20 Continuous Bluetooth send Code -> Success! */
         if(bt.isServiceAvailable()) {
             bt.send(X_f + "///" + Y_f,true);
